@@ -45,14 +45,15 @@ The critic loop is limited to a maximum of three iterations to prevent uncontrol
 | Measurement | Result |
 |---|---:|
 | Acceptance-criteria coverage | 100% |
-| Initial critic quality score | 90% |
-| Quality after critic revision | 100% |
-| Tests executed | 5 |
-| Tests passed | 4 |
-| Tests failed | 1 |
+| Critic quality score | 95% |
+| Final quality score at execution | 100% |
+| Tests executed | 7 |
+| Tests passed | 5 |
+| Tests failed | 2 |
 | Potential defects identified | 1 |
+| Test pass rate | 71.4% |
 
-These figures represent one documented demonstration run using sample data and mock services. Results can vary with the selected model, prompt, story and execution service.
+These figures represent one documented demonstration run using sample data and mock services. Results can vary depending on the model, prompt, story and execution service.
 
 ## Workflow Components
 
