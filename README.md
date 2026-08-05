@@ -55,6 +55,13 @@ The critic loop is limited to a maximum of three iterations to prevent uncontrol
 
 These figures represent one documented demonstration run using sample data and mock services. Results can vary depending on the model, prompt, story and execution service.
 
+### Full Evidence Report
+
+📄 [View the complete Agentic AI QA demonstration evidence report](agentic-ai-qa-demonstration-evidence.pdf)
+
+The report includes workflow architecture, critic-agent evaluation, test-execution evidence, potential-defect analysis and responsible-use controls.
+
+
 ## Workflow Components
 
 ### 1. Jira Trigger and Story Extraction
