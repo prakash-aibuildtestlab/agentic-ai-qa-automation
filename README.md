@@ -1,7 +1,3 @@
-## Workflow Architecture
-
-![Agentic AI QA Automation Workflow](agentic-ai-qa-workflow.png.jpg)
-
 # Agentic AI QA Automation
 
 An end-to-end quality-engineering workflow that uses Jira, n8n and AI agents to generate, review and execute tests from acceptance criteria.
@@ -20,6 +16,10 @@ Traditional test-design activities can require considerable manual effort:
 * Recording results and defects
 
 This project demonstrates how an agentic AI workflow can automate these activities while retaining critic-agent and human-review controls.
+
+## Workflow Architecture
+
+![Agentic AI QA Automation Workflow](agentic-ai-qa-workflow.png.jpg)
 
 ## End-to-End Workflow
 
