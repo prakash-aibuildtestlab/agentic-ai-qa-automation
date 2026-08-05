@@ -1,234 +1,318 @@
-# Agentic AI QA Automation
+**Build • Automate • Test**
 
-An end-to-end quality-engineering workflow that uses Jira, n8n and AI agents to generate, review and execute tests from acceptance criteria.
+## Agentic AI QA Automation
 
-> This is an independent portfolio/demo project. It uses sample Jira stories, test data and mock execution services—not production or employer data.
+An end-to-end quality-engineering workflow that uses Jira, n8n and AI agents to generate, review, improve and execute tests from acceptance criteria.
 
-## Project Overview
+Portfolio disclaimer: This is an independent demonstration project built with sample Jira stories, synthetic test data and mock execution services. It does not contain production, customer or employer data.
 
-Traditional test-design activities can require considerable manual effort:
+## Project Outcomes
 
-* Reviewing acceptance criteria
-* Creating test scenarios
-* Checking test coverage
-* Preparing test data
-* Executing tests
-* Recording results and defects
+This demonstration shows how an agentic workflow can:
 
-This project demonstrates how an agentic AI workflow can automate these activities while retaining critic-agent and human-review controls.
+Extract acceptance criteria from a Jira story
+
+Generate structured positive, negative and boundary test scenarios
+
+Evaluate test quality and acceptance-criteria coverage using a critic agent
+
+Improve test cases when the quality threshold is not met
+
+Generate synthetic test data
+
+Execute tests against a mock API
+
+Analyse failures and prepare defect information
+
+Publish a consolidated execution report to Jira
 
 ## Workflow Architecture
 
 ![Agentic AI QA Automation Workflow](agentic-ai-qa-workflow.png.jpg)
 
+
 ## End-to-End Workflow
 
-```mermaid
 flowchart TD
-    A[Jira story moved to Ready for Test] --> B[n8n webhook]
-    B --> C[Analyse acceptance criteria]
-    C --> D[Generate test cases]
-    D --> E[Critic agent reviews quality and coverage]
-    E -->|Revision required| F[Improve test cases]
+    A["Jira: Ready for Test"] --> B["n8n webhook"]
+    B --> C["Analyse acceptance criteria"]
+    C --> D["Generate test cases"]
+    D --> E["Critic review"]
+    E -->|"Revision required"| F["Improve test cases"]
     F --> E
-    E -->|Approved| G[Generate test data]
-    G --> H[Execute tests against mock API]
-    H --> I[Analyse results]
-    I --> J[Create defect details]
-    I --> K[Publish test report to Jira]
-```
+    E -->|"Approved"| G["Generate test data"]
+    G --> H["Execute against mock API"]
+    H --> I["Analyse results"]
+    I --> J["Prepare defect details"]
+    I --> K["Publish report to Jira"]
 
 The critic loop is limited to a maximum of three iterations to prevent uncontrolled execution.
 
+## Demonstrated Results
+
+Measurement
+
+Result
+
+Acceptance-criteria coverage
+
+100%
+
+Initial critic quality score
+
+90%
+
+Quality after critic revision
+
+100%
+
+Tests executed
+
+5
+
+Tests passed
+
+4
+
+Tests failed
+
+1
+
+Potential defects identified
+
+1
+
+These figures represent one documented demonstration run using sample data and mock services. Results can vary with the selected model, prompt, story and execution service.
+
 ## Workflow Components
 
-### 1. Jira Trigger
+1. Jira Trigger and Story Extraction
 
-The workflow starts when a Jira story transitions to **Ready for Test**.
+The workflow starts when a Jira story transitions to Ready for Test. Jira Automation sends the issue key, summary, description and acceptance criteria to an n8n webhook.
 
-The Jira automation sends:
+2. Acceptance-Criteria Analysis
 
-* Issue key
-* Summary
-* Description
-* Acceptance criteria
+The workflow analyses the story to identify:
 
-### 2. Acceptance-Criteria Analysis
+Business rules and validations
 
-The AI analyses the story to identify:
+Positive, negative and boundary scenarios
 
-* Business rules
-* Positive scenarios
-* Negative scenarios
-* Validation requirements
-* Missing or ambiguous information
-* Required test data
+Missing or ambiguous requirements
 
-### 3. AI Test-Case Generation
+Required test data
 
-The test-generation component creates structured test cases containing:
+Expected API behaviour
 
-* Test-case ID
-* Scenario
-* Preconditions
-* Test steps
-* Test data
-* Expected result
-* Acceptance-criteria mapping
-* Priority
+3. AI Test-Case Generation
 
-### 4. Critic-Agent Review
+The test-generation agent creates structured test cases containing:
 
-A critic agent reviews the generated tests for:
+Test-case ID and scenario
 
-* Acceptance-criteria coverage
-* Positive and negative coverage
-* Boundary conditions
-* Clarity and completeness
-* Duplicate scenarios
-* Missing validations
+Preconditions and test steps
 
-If quality is below the required threshold, feedback is returned to the generator for revision.
+Synthetic test data
 
-### 5. Test-Data Generation
+Expected result
 
-After critic approval, the workflow generates safe sample data for each test scenario.
+Acceptance-criteria mapping
 
-### 6. Automated Test Execution
+Priority
 
-Tests are executed against a mock API selected according to the story and acceptance criteria.
+4. Critic-Agent Evaluation
 
-The executor records:
+The critic agent evaluates:
 
-* Request
-* Response
-* Status code
-* Expected result
-* Actual result
-* Pass or fail status
+Acceptance-criteria coverage
 
-### 7. Defect and Report Generation
+Positive, negative and boundary coverage
 
-Failed scenarios are analysed and converted into structured defect information.
+Clarity and completeness
 
-The final report is posted back to Jira with:
+Duplicate or redundant scenarios
 
-* Execution summary
-* Passed and failed tests
-* Coverage information
-* Defect details
-* Critic-agent feedback
+Missing validations
 
-## Demonstrated Execution Result
+Overall quality score
 
-| Measurement                   | Result |
-| ----------------------------- | -----: |
-| Acceptance-criteria coverage  |   100% |
-| Initial critic quality score  |    90% |
-| Quality after critic revision |   100% |
-| Tests executed                |      5 |
-| Passed                        |      4 |
-| Failed                        |      1 |
-| Defects identified            |      1 |
+When the score is below the configured threshold, the improvement agent revises the test cases and returns them for another critic review.
 
-These figures represent one documented demonstration run using sample data and mock services.
+5. Test-Data Generation
 
-## Testing Performed
+After critic approval, the workflow generates synthetic test data aligned with each scenario. No real customer data is required.
 
-The workflow was tested for:
+6. Mock Test Execution
 
-* Valid Jira stories
-* Missing acceptance criteria
-* Invalid and incomplete payloads
-* Positive and negative scenarios
-* Critic approval and revision branches
-* Maximum critic-loop enforcement
-* Webhook failures
-* Mock API failures
-* Incorrect response status
-* Failed test and defect-reporting paths
-* Duplicate workflow executions
-* Jira comment and report publication
+The execution component sends the generated requests to a configured mock API. The demonstration maps each story or operation to an appropriate mock endpoint through workflow configuration.
 
-## Human-in-the-Loop Controls
+For every execution, it records:
 
-AI-generated outputs should not automatically be treated as approved production test assets.
+Request and response
 
-The workflow supports human review before:
+Status code
 
-* Approving generated test cases
-* Executing business-critical actions
-* Creating or publishing defects
-* Accepting final evaluation results
+Expected and actual result
+
+Pass or fail status
+
+7. Defect Analysis and Jira Reporting
+
+Failed scenarios are analysed and converted into structured potential-defect information. The final Jira comment contains:
+
+Execution summary
+
+Passed and failed tests
+
+Coverage and critic scores
+
+Failure evidence
+
+Potential-defect details
+
+Critic feedback
+
+A failed automated test is treated as a potential defect until it is reviewed and confirmed by a QA professional.
+
+Testing Performed
+
+The workflow was exercised with:
+
+Valid Jira stories
+
+Missing or incomplete acceptance criteria
+
+Invalid and incomplete webhook payloads
+
+Positive, negative and boundary scenarios
+
+Critic approval and revision paths
+
+Maximum critic-loop enforcement
+
+Mock API and webhook failures
+
+Unexpected response status codes
+
+Failed-test and defect-reporting paths
+
+Duplicate workflow executions
+
+Jira comment publication
+
+Human-in-the-Loop Controls
+
+AI-generated outputs should not automatically be treated as approved production test assets. Human review is recommended before:
+
+Approving generated test cases
+
+Executing business-critical actions
+
+Creating or publishing confirmed defects
+
+Accepting final evaluation results
 
 ## Technology Stack
 
-* n8n
-* Jira and Jira Automation
-* Python
-* REST APIs and webhooks
-* Docker
-* Cloudflare Tunnel
-* LLM APIs
-* JSON
-* Postman
-* Mock API services
+n8n
 
-## Planned Repository Structure
+Jira and Jira Automation
 
-```text
+LLM APIs
+
+REST APIs and webhooks
+
+JSON
+
+Docker
+
+Cloudflare Tunnel for local demonstration access
+
+Mock API services
+
+Repository Contents
+
 agentic-ai-qa-automation/
 ├── README.md
-├── workflow/
-│   └── agentic-ai-qa-workflow.json
-├── mock-api/
-│   └── app.py
-├── sample-data/
-│   ├── jira-story.json
-│   └── test-execution-data.json
-├── results/
-│   └── sample-test-report.json
-├── screenshots/
-│   ├── workflow-overview.png
-│   ├── critic-result.png
-│   └── jira-report.png
-├── .env.example
+├── agentic-ai-qa-workflow.json
+├── agentic-ai-qa-workflow.png.jpg
 ├── .gitignore
 └── LICENSE
-```
 
-## Security
+Planned evidence files include sample Jira payloads, synthetic execution reports and screenshots of critic and Jira results.
 
-This repository must not contain:
+Import and Configure
 
-* Jira passwords or API tokens
-* LLM API keys
-* Real customer or employer data
-* Production URLs
-* Confidential acceptance criteria
-* Personal information
+Download agentic-ai-qa-workflow.json.
 
-Credentials should be stored in environment variables or n8n credentials and represented only by placeholders in `.env.example`.
+In n8n, select Import from File and choose the downloaded workflow.
 
-## Future Enhancements
+Configure your own Jira and LLM credentials in n8n.
 
-* Automatically create Jira defect issues
-* Add DeepEval-based agent evaluation
-* Add prompt and model regression tests
-* Add safety and prompt-injection scenarios
-* Add CI/CD evaluation gates
-* Track quality changes across workflow versions
+Replace placeholder Jira and mock API URLs with your own safe test endpoints.
 
-## Author
+Review the prompts, model choices and quality threshold.
 
-**Prakash Ganji**
-Senior QA / Test Lead | AI QA | Agentic AI and RAG Testing
+Keep the workflow inactive until all credentials and test endpoints are verified.
 
-* [GitHub Profile](https://github.com/prakash-aibuildtestlab)
-* [YouTube — AI Build & Test Lab](https://www.youtube.com/@AIBuildTestLab)
-* [LinkedIn](https://www.linkedin.com/in/prakash-ganji-437302b6)
+Test with sample Jira stories before connecting it to any real environment.
 
----
+Security and Responsible Use
 
-**Build • Automate • Test**
+Do not commit:
 
+Jira passwords, API tokens or credential IDs
+
+LLM API keys
+
+Real customer, employee or employer data
+
+Production URLs
+
+Confidential acceptance criteria
+
+Personal information
+
+Store credentials in n8n Credentials or environment variables. Use placeholders in all public examples and manually review AI-generated test assets and defect information.
+
+Current Limitations
+
+Execution uses mock services rather than a production application.
+
+API routing is configured for the demonstrated sample stories.
+
+A failed test prepares potential-defect information but does not yet create a separate Jira defect automatically.
+
+LLM outputs can vary, so deterministic validation and human review remain necessary.
+
+This demonstration does not replace an organisation's test strategy, security controls or approval process.
+
+Future Enhancements
+
+Automatically create Jira defect issues after human approval
+
+Add DeepEval and RAGAS evaluation suites
+
+Add prompt and model regression tests
+
+Add safety and prompt-injection scenarios
+
+Add deterministic JSON-schema validation
+
+Add CI/CD quality gates
+
+Track evaluation results across workflow and model versions
+
+Add reusable configuration for story-to-endpoint routing
+
+Author
+
+Prakash GanjiSenior QA / Test Lead | AI QA | LLM, RAG and Agentic AI Testing
+
+GitHub Profile
+
+YouTube — AI Build & Test Lab
+
+LinkedIn
+
+Build • Automate • Test
