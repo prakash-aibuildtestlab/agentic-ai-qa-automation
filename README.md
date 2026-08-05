@@ -55,7 +55,7 @@ The critic loop is limited to a maximum of three iterations to prevent uncontrol
 
 These figures represent one documented demonstration run using sample data and mock services. Results can vary depending on the model, prompt, story and execution service.
 
-### Full Evidence Report
+## Full Evidence Report
 
 📄 [View the complete Agentic AI QA demonstration evidence report](agentic-ai-qa-demonstration-evidence.pdf)
 
