@@ -1,0 +1,614 @@
+{
+  "name": "Agentic AI QA Automation - Public Demo",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const issueKey = $json.issue_key;\nconst summary = $json.summary;\nconst executionStatus = $json.execution_status;\nconst totalDefects = $json.total_defects || 0;\nconst defects = $json.defects || [];\nconst executionResults = $json.execution_results || [];\n\nconst iteration = $json.iteration || \"N/A\";\nconst maxIterations = $json.max_iterations || \"N/A\";\nconst acCoveragePercentage = $json.ac_coverage_percentage || \"N/A\";\nconst qualityScore = $json.quality_score || \"N/A\";\nconst criticStatus = $json.critic_status || \"N/A\";\nconst criticFeedback = $json.critic_feedback || [];\n\nconst totalTests = executionResults.length;\nconst passed = executionResults.filter(r => r.execution_status === \"PASS\").length;\nconst failed = executionResults.filter(r => r.execution_status === \"FAIL\").length;\n\nlet report = `\nAI QA Agent Execution Report\n\nStory: ${issueKey}\nSummary: ${summary}\n\nQuality Gate Summary:\nCritic Status: ${criticStatus}\nAC Coverage: ${acCoveragePercentage}%\nQuality Score: ${qualityScore}\nReview Iteration: ${iteration} of ${maxIterations}\n\nCritic Feedback:\n${criticFeedback.length > 0 ? criticFeedback.map(f => `- ${f}`).join(\"\\n\") : \"- No critic feedback available.\"}\n\nTest Execution Summary:\nTotal Tests: ${totalTests}\nPassed: ${passed}\nFailed: ${failed}\nOverall Execution Status: ${executionStatus}\n\nExecution Evidence:\n`;\n\nexecutionResults.forEach(r => {\n  report += `\n\n${r.test_case_id} - ${r.execution_status}\nScenario: ${r.scenario}\nType: ${r.type}\nMethod: ${r.api_method}\nURL: ${r.api_url}\nExpected Status: ${r.expected_status}\nActual Status: ${r.actual_status}\nActual Result: ${r.actual_result}\n\nResponse Body:\n${JSON.stringify(r.response_body, null, 2)}\n\nDefect Required: ${r.defect_required ? \"Yes\" : \"No\"}\n`;\n});\n\nif (defects.length > 0) {\n  report += `\n\nDefects Identified:\n`;\n\n  defects.forEach(d => {\n    report += `\n\n${d.defect_id}\nSummary: ${d.defect_summary}\nSeverity: ${d.severity}\nPriority: ${d.priority}\nStatus: ${d.status}\nDescription:\n${d.defect_description}\n`;\n  });\n} else {\n  report += `\n\nNo defects identified.\n`;\n}\n\nreturn [\n  {\n    json: {\n      issue_key: issueKey,\n      summary,\n      critic_status: criticStatus,\n      ac_coverage_percentage: acCoveragePercentage,\n      quality_score: qualityScore,\n      iteration,\n      max_iterations: maxIterations,\n      execution_status: executionStatus,\n      total_tests: totalTests,\n      passed,\n      failed,\n      total_defects: totalDefects,\n      defects,\n      execution_results: executionResults,\n      report\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -112
+      ],
+      "id": "7e5cfb2a-1700-47f0-8c4c-64db71aa1889",
+      "name": "Test Report"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5222a400-b856-48f4-bde4-82c92f3ff5a6",
+              "leftValue": "={{ Number($json.quality_score) }}",
+              "rightValue": 90,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "3e26ad19-b6fa-4103-82ae-a9eea33b48e4",
+              "leftValue": "={{ $json.iteration }}",
+              "rightValue": "={{ $json.max_iterations }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -128,
+        -96
+      ],
+      "id": "882403d9-0072-485b-bb6b-ce64c6e77beb",
+      "name": "Quality Gate"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "DEMO-101.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a Senior QA Test Lead and AI Test Case Agent.\n\nGenerate structured functional API test cases from the Jira story below.\n\nStory Key:\n{{ $json.issue_key }}\n\nStory Summary:\n{{ $json.summary }}\n\nStory Description / Acceptance Criteria:\n{{ $json.description }}\n\nValidation Requirement:\nThe Jira description contains 5 numbered acceptance criteria. You must return acceptance_criteria_count as 5.\n\nTreat these ACs separately:\n1. Customer can track a parcel using a valid tracking number.\n2. System displays current parcel status, last scan location, and estimated delivery date.\n3. System shows an error for an invalid tracking number.\n4. System shows a clear message when tracking information is not available yet.\n5. System must not expose another customer parcel details.\n\nRules:\n1. Create one or more test cases for every acceptance criterion.\n2. Do not merge multiple acceptance criteria into one acceptance_criteria field.\n3. Include positive, negative, boundary, and security/privacy scenarios where relevant.\n4. Include API method, endpoint, request data, expected HTTP status code, and validation steps.\n5. Every test case must have at least 3 executable steps.\n6. Use these mock API endpoints exactly where relevant:\n   - Valid tracking: /track/TRK1001, expected 200\n   - Invalid tracking: /track/INVALID123, expected 404\n   - Pending tracking: /track/PENDING1002, expected 202\n   - Privacy/security defect: /track/PRIVATE1003, expected 403\n7. Return valid JSON only.\n8. Do not include markdown, explanation, or code fences.\n\nReturn exactly this JSON structure:\n\n{\n  \"issue_key\": \"string\",\n  \"summary\": \"string\",\n  \"acceptance_criteria_count\": 5,\n  \"test_case_count\": number,\n  \"test_cases\": [\n    {\n      \"test_case_id\": \"TC_001\",\n      \"issue_key\": \"string\",\n      \"story\": \"string\",\n      \"acceptance_criteria\": \"string\",\n      \"scenario\": \"string\",\n      \"api_method\": \"GET\",\n      \"api_endpoint\": \"/track/TRK1001\",\n      \"request_data\": {},\n      \"expected_status\": 200,\n      \"steps\": [\"step 1\", \"step 2\", \"step 3\"],\n      \"expected_result\": \"string\",\n      \"priority\": \"High/Medium/Low\",\n      \"type\": \"Positive/Negative/Boundary/Security\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -496,
+        -128
+      ],
+      "id": "ca13a3d6-e5ab-486f-9877-70cc4f0c0c87",
+      "name": "AI Test Case Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiText =\n  $json.output?.[0]?.content?.[0]?.text ||\n  $json.content?.parts?.[0]?.text ||\n  $json.text ||\n  \"\";\n\nlet cleaned = aiText\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -304
+      ],
+      "id": "772b2154-37f0-48b0-84ae-e17c91a02f00",
+      "name": "Parse AI Test Cases"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiText =\n  $json.content?.parts?.[0]?.text ||\n  $json.output?.[0]?.content?.[0]?.text ||\n  $json.text ||\n  \"\";\n\nlet cleaned = aiText\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\nparsed.iteration = parsed.iteration || 1;\nparsed.max_iterations = parsed.max_iterations || 3;\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -256
+      ],
+      "id": "0418266a-1635-4f25-8b10-188aff0a62ed",
+      "name": "Parse AI Critic Review"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "DEMO-101.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a Senior QA Test Lead and AI Test Case Improvement Agent.\n\nThe Critic Agent reviewed the test cases and found quality issues.\n\nYour job is to improve the test cases based on critic feedback.\n\nIssue Key:\n{{ $json.issue_key }}\n\nSummary:\n{{ $json.summary }}\n\nCritic Feedback:\n{{ JSON.stringify($json.critic_feedback) }}\n\nCurrent Test Cases:\n{{ JSON.stringify($json.test_cases) }}\n\nRules:\n1. Improve weak test steps.\n2. Every test case must have at least 3 executable steps.\n3. Do not return only \"Send request\" and \"Receive response\". Include validation/assertion steps.\n4. Add API method, endpoint, request data, expected status code, and response validation.\n5. Make expected results specific and testable.\n6. Keep all acceptance criteria covered.\n7. Keep positive, negative, boundary, and security/privacy test scenarios.\n8. Do not remove useful existing test cases.\n9. Use these mock API endpoints exactly:\n   - Valid tracking: /track/TRK1001, expected 200\n   - Invalid tracking: /track/INVALID123, expected 404\n   - Pending tracking: /track/PENDING1002, expected 202\n   - Privacy/security defect: /track/PRIVATE1003, expected 403\n10. Return valid JSON only.\n11. Do not include markdown or explanation.\n\nReturn exactly this JSON structure:\n\n{\n  \"issue_key\": \"string\",\n  \"summary\": \"string\",\n  \"iteration\": number,\n  \"max_iterations\": 3,\n  \"acceptance_criteria_count\": number,\n  \"test_case_count\": number,\n  \"test_cases\": [\n    {\n      \"test_case_id\": \"TC_001\",\n      \"issue_key\": \"string\",\n      \"story\": \"string\",\n      \"acceptance_criteria\": \"string\",\n      \"scenario\": \"string\",\n      \"api_method\": \"GET\",\n      \"api_endpoint\": \"/track/TRK1001\",\n      \"request_data\": {},\n      \"expected_status\": 200,\n      \"steps\": [\"step 1\", \"step 2\", \"step 3\"],\n      \"expected_result\": \"string\",\n      \"priority\": \"High/Medium/Low\",\n      \"type\": \"Positive/Negative/Boundary/Security\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        208
+      ],
+      "id": "22a25848-2e28-4aec-a463-8097db293163",
+      "name": "AI Improvement Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jira-ai-qa-agent-llm",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1168,
+        -128
+      ],
+      "id": "eee1c46c-b9d4-4f4c-8a45-a49e1089c52e",
+      "name": "Jira Extraction AC's"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a Senior QA Test Lead and AI Critic Agent.\n\nReview the generated test cases against the Jira story and acceptance criteria.\n\nYour job:\n1. Check whether every acceptance criterion is covered.\n2. Check whether positive, negative, boundary, and security/privacy scenarios are included where relevant.\n3. Check whether test steps are executable.\n4. Check whether expected results include HTTP status code and response validation where applicable.\n5. Check whether security/privacy scenarios are clearly tested.\n6. Identify weak tests, duplicates, missing coverage, or vague expected results.\n7. Return valid JSON only. Do not include markdown or explanation.\n\nJira Story:\nIssue Key: {{ $json.issue_key }}\nSummary: {{ $json.summary }}\n\nGenerated Test Cases:\n{{ JSON.stringify($json.test_cases) }}\n\nScoring rules:\n- Start from 100.\n- Deduct 30 if any acceptance criterion is not covered.\n- Deduct 15 if security/privacy AC is missing or weak.\n- Deduct 10 if there are no negative scenarios.\n- Deduct 10 if there are no boundary scenarios.\n- Deduct 5 if a few test steps are short but still executable.\n- Deduct 15 only if most test steps are vague or not executable.\n- PASS if AC coverage is 100 and quality_score is 90 or above.\n- FAIL if AC coverage is below 100.\n- FAIL if quality_score is below 90.\n\nImportant:\nIf the improved test cases include api_method, api_endpoint, expected_status, clear expected_result, and security/privacy validation, then the quality score should be 90 or above.\n\nReturn exactly this JSON structure:\n\n{\n  \"issue_key\": \"string\",\n  \"summary\": \"string\",\n  \"acceptance_criteria_count\": number,\n  \"test_case_count\": number,\n  \"ac_coverage_percentage\": number,\n  \"quality_score\": number,\n  \"critic_status\": \"PASS or FAIL\",\n  \"critic_feedback\": [\"feedback 1\", \"feedback 2\"],\n  \"coverage_report\": [\n    {\n      \"acceptance_criteria\": \"string\",\n      \"covered_by_test_case\": \"string\",\n      \"coverage_status\": \"Covered or Not Covered\"\n    }\n  ],\n  \"uncovered_acceptance_criteria\": [],\n  \"test_cases\": []\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -640
+      ],
+      "id": "b43550e0-91ad-45ac-966f-47d725cf2a95",
+      "name": "Critic Agent - AC Coverage1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiText =\n  $json.output?.[0]?.content?.[0]?.text ||\n  $json.content?.parts?.[0]?.text ||\n  $json.text ||\n  \"\";\n\nlet cleaned = aiText\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\nparsed.iteration = parsed.iteration || 2;\nparsed.max_iterations = parsed.max_iterations || 3;\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        -464
+      ],
+      "id": "2c694646-75f9-4e32-a34f-b92dfc935e13",
+      "name": "Parse AI Improvement"
+    },
+    {
+      "parameters": {
+        "content": "Quality < 90% - Retry",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "9bd6c359-68a5-45b2-a3bd-46876efb8f52",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Quality >90%",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "e141c19c-99d4-4574-b4b6-2872f2dc01f0",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "DEMO-101.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a Senior QA Test Lead and AI Critic Agent.\n\nReview the generated test cases against the Jira story and acceptance criteria.\n\nYour job:\n1. Check whether every acceptance criterion is covered.\n2. Check whether positive, negative, boundary, and security/privacy scenarios are included where relevant.\n3. Check whether test steps are executable.\n4. Check whether expected results include HTTP status code and response validation where applicable.\n5. Check whether security/privacy scenarios are clearly tested.\n6. Identify weak tests, duplicates, missing coverage, or vague expected results.\n7. Return valid JSON only. Do not include markdown or explanation.\n\nJira Story:\nIssue Key: {{ $json.issue_key }}\nSummary: {{ $json.summary }}\n\nGenerated Test Cases:\n{{ JSON.stringify($json.test_cases) }}\n\nScoring rules:\n- Start from 100.\n- Deduct 30 if any acceptance criterion is not covered.\n- Deduct 15 if security/privacy AC is missing or weak.\n- Deduct 10 if there are no negative scenarios.\n- Deduct 10 if there are no boundary scenarios.\n- Deduct 5 if a few test steps are short but still executable.\n- Deduct 15 only if most test steps are vague or not executable.\n- PASS if AC coverage is 100 and quality_score is 90 or above.\n- FAIL if AC coverage is below 100.\n- FAIL if quality_score is below 90.\n\nImportant:\nIf the test cases include api_method, api_endpoint, expected_status, clear expected_result, and security/privacy validation, then the quality score should be 90 or above.\n\nReturn exactly this JSON structure:\n\n{\n  \"issue_key\": \"string\",\n  \"summary\": \"string\",\n  \"acceptance_criteria_count\": number,\n  \"test_case_count\": number,\n  \"ac_coverage_percentage\": number,\n  \"quality_score\": number,\n  \"critic_status\": \"PASS or FAIL\",\n  \"critic_feedback\": [\"feedback 1\", \"feedback 2\"],\n  \"coverage_report\": [\n    {\n      \"acceptance_criteria\": \"string\",\n      \"covered_by_test_case\": \"string\",\n      \"coverage_status\": \"Covered or Not Covered\"\n    }\n  ],\n  \"uncovered_acceptance_criteria\": [],\n  \"test_cases\": []\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -240,
+        -464
+      ],
+      "id": "c0410e35-3669-41da-bdb1-61e664d0b799",
+      "name": "Critic Agent - AC Coverage2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "DEMO-101.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a Senior QA Test Data Agent.\n\nGenerate executable API test data for the approved test cases.\n\nInput Test Cases:\n{{ JSON.stringify($json.test_cases) }}\n\nRules:\n1. Use the api_endpoint and expected_status from each test case.\n2. Add concrete tracking numbers that match the mock API.\n3. Do not invent endpoints outside the provided mock API.\n4. Return valid JSON only.\n5. Do not include markdown or explanation.\n\nUse this mapping:\n- Positive valid tracking → /track/TRK1001, expected_status 200\n- Invalid tracking → /track/INVALID123, expected_status 404\n- Pending tracking → /track/PENDING1002, expected_status 202\n- Privacy/security scenario → /track/PRIVATE1003, expected_status 403\n\nReturn exactly this JSON structure:\n\n{\n  \"issue_key\": \"string\",\n  \"summary\": \"string\",\n  \"iteration\": number,\n  \"max_iterations\": number,\n  \"ac_coverage_percentage\": number,\n  \"quality_score\": number,\n  \"critic_status\": \"PASS\",\n  \"critic_feedback\": [],\n  \"test_data_count\": number,\n  \"test_data\": [\n    {\n      \"test_case_id\": \"TC_001\",\n      \"scenario\": \"string\",\n      \"type\": \"Positive/Negative/Boundary/Security\",\n      \"api_method\": \"GET\",\n      \"api_url\": \"http://YOUR-API-HOST.example.com:8000/track/TRK1001\",\n      \"expected_status\": 200,\n      \"request_data\": {},\n      \"expected_result\": \"string\"\n    }\n  ],\n  \"test_cases\": []\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        -112
+      ],
+      "id": "38cdaaa7-a183-4f2f-ad54-b857c1385b4c",
+      "name": "Test Data Agent1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiText =\n  $json.output?.[0]?.content?.[0]?.text ||\n  $json.content?.parts?.[0]?.text ||\n  $json.text ||\n  \"\";\n\nlet cleaned = aiText\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst parsed = JSON.parse(cleaned);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        -112
+      ],
+      "id": "be27a8c0-c68f-42a6-82da-6ed24ee19b6a",
+      "name": "Parse AI Test Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ec43658-d8dd-48da-b2aa-9fa24ca0247c",
+              "name": "issue_key",
+              "value": "={{ $json.body.issue.key }}",
+              "type": "string"
+            },
+            {
+              "id": "e1da71f6-6bda-4843-8770-54e085893323",
+              "name": "summary",
+              "value": "={{ $json.body.issue.fields.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "6a6acd0c-58eb-43dd-be21-704e8c9d1867",
+              "name": "description",
+              "value": "={{ $json.body.issue.fields.description }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -896,
+        -128
+      ],
+      "id": "8c3d0536-f628-4cfa-bdc5-e4a11be448ec",
+      "name": "Jira Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const issueKey = $json.issue_key;\nconst summary = $json.summary;\nconst description = $json.description || \"\";\n\nlet cleanDescription = description\n  .replace(/Acceptance Criteria:/gi, \"\")\n  .replace(/\\r/g, \"\")\n  .trim();\n\nlet acceptanceCriteria = cleanDescription\n  .split(/\\s*\\d+\\.\\s+/)\n  .map(ac => ac.trim())\n  .filter(ac => ac.length > 0);\n\nif (acceptanceCriteria.length <= 1) {\n  acceptanceCriteria = cleanDescription\n    .split(/\\n+/)\n    .map(ac => ac.trim())\n    .filter(ac => ac.length > 0);\n}\n\nreturn [\n  {\n    json: {\n      issue_key: issueKey,\n      summary,\n      description,\n      acceptance_criteria_count: acceptanceCriteria.length,\n      acceptance_criteria: acceptanceCriteria\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        -128
+      ],
+      "id": "de07039e-77a5-49d2-83d4-67a00ae66a8e",
+      "name": "Total AC's"
+    },
+    {
+      "parameters": {
+        "jsCode": "const issueKey = $json.issue_key;\nconst summary = $json.summary;\nconst testData = $json.test_data || [];\n\nconst iteration = $json.iteration;\nconst maxIterations = $json.max_iterations;\nconst acCoveragePercentage = $json.ac_coverage_percentage;\nconst qualityScore = $json.quality_score;\nconst criticStatus = $json.critic_status;\nconst criticFeedback = $json.critic_feedback || [];\n\nconst executionResults = [];\n\nfor (const td of testData) {\n  let actualStatus = null;\n  let responseBody = null;\n  let executionStatus = \"FAIL\";\n  let actualResult = \"\";\n  let defectRequired = false;\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: td.api_method || \"GET\",\n      url: td.api_url,\n      json: true,\n      returnFullResponse: true,\n      timeout: 10000,\n      ignoreHttpStatusErrors: true\n    });\n\n    actualStatus = response.statusCode;\n    responseBody = response.body;\n\n    if (Number(actualStatus) === Number(td.expected_status)) {\n      executionStatus = \"PASS\";\n      actualResult = `Expected status ${td.expected_status} matched actual status ${actualStatus}.`;\n      defectRequired = false;\n    } else {\n      executionStatus = \"FAIL\";\n      actualResult = `Expected status ${td.expected_status}, but actual status was ${actualStatus}.`;\n      defectRequired = true;\n    }\n\n  } catch (error) {\n    actualStatus =\n      error.response?.statusCode ||\n      error.response?.status ||\n      error.statusCode ||\n      error.status ||\n      \"ERROR\";\n\n    responseBody =\n      error.response?.body ||\n      error.response?.data ||\n      error.message;\n\n    if (Number(actualStatus) === Number(td.expected_status)) {\n      executionStatus = \"PASS\";\n      actualResult = `Expected status ${td.expected_status} matched actual status ${actualStatus}.`;\n      defectRequired = false;\n    } else {\n      executionStatus = \"FAIL\";\n      actualResult = `API execution failed. Expected status ${td.expected_status}, actual status ${actualStatus}.`;\n      defectRequired = true;\n    }\n  }\n\n  executionResults.push({\n    test_case_id: td.test_case_id,\n    scenario: td.scenario,\n    type: td.type,\n    api_method: td.api_method || \"GET\",\n    api_url: td.api_url,\n    expected_status: td.expected_status,\n    actual_status: actualStatus,\n    request_data: td.request_data || {},\n    response_body: responseBody,\n    execution_status: executionStatus,\n    actual_result: actualResult,\n    defect_required: defectRequired\n  });\n}\n\nconst passed = executionResults.filter(r => r.execution_status === \"PASS\").length;\nconst failed = executionResults.filter(r => r.execution_status === \"FAIL\").length;\n\nreturn [\n  {\n    json: {\n      issue_key: issueKey,\n      summary,\n      iteration,\n      max_iterations: maxIterations,\n      ac_coverage_percentage: acCoveragePercentage,\n      quality_score: qualityScore,\n      critic_status: criticStatus,\n      critic_feedback: criticFeedback,\n      total_tests: executionResults.length,\n      passed,\n      failed,\n      execution_status: failed === 0 ? \"PASS\" : \"FAIL\",\n      execution_results: executionResults,\n      test_data: testData\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        -112
+      ],
+      "id": "2e7e3f8c-2592-4e0c-8e55-ca2c60ec9674",
+      "name": "Test Execution Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const issueKey = $json.issue_key;\nconst summary = $json.summary;\nconst executionResults = $json.execution_results || [];\n\nconst defects = [];\n\nexecutionResults\n  .filter(r => r.execution_status === \"FAIL\")\n  .forEach((r, index) => {\n    const isSecurity = String(r.type).toLowerCase().includes(\"security\");\n\n    defects.push({\n      defect_id: `BUG_${String(index + 1).padStart(3, \"0\")}`,\n      linked_story: issueKey,\n      failed_test_case_id: r.test_case_id,\n      defect_summary: isSecurity\n        ? \"Security issue: Unauthorized access to another customer's parcel details\"\n        : `API validation failed for ${r.test_case_id}`,\n      defect_description:\n        `Test Case ${r.test_case_id} failed.\\n\\n` +\n        `Scenario: ${r.scenario}\\n` +\n        `API URL: ${r.api_url}\\n` +\n        `Expected Status: ${r.expected_status}\\n` +\n        `Actual Status: ${r.actual_status}\\n\\n` +\n        `Response Body:\\n${JSON.stringify(r.response_body, null, 2)}\\n\\n` +\n        `Actual Result: ${r.actual_result}`,\n      api_url: r.api_url,\n      expected_status: r.expected_status,\n      actual_status: r.actual_status,\n      severity: isSecurity ? \"Critical\" : \"High\",\n      priority: isSecurity ? \"High\" : \"Medium\",\n      status: \"Ready to Log\"\n    });\n  });\n\nreturn [\n  {\n    json: {\n      issue_key: issueKey,\n      summary,\n      execution_status: $json.execution_status,\n      total_tests: $json.total_tests,\n      passed: $json.passed,\n      failed: $json.failed,\n      total_defects: defects.length,\n      defects,\n\n      critic_status: $json.critic_status,\n      ac_coverage_percentage: $json.ac_coverage_percentage,\n      quality_score: $json.quality_score,\n      critic_feedback: $json.critic_feedback || [],\n\n      execution_results: executionResults,\n      test_data: $json.test_data || []\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        -112
+      ],
+      "id": "23deca04-d8eb-4c26-9f0d-b0eb4e5c0be4",
+      "name": "Defect Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://YOUR-DOMAIN.atlassian.net/rest/api/3/issue/{{ $json.issue_key }}/comment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.jira_comment_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1584,
+        -112
+      ],
+      "id": "a35d8484-3b19-4855-988e-83e075ce076c",
+      "name": "Add Jira Comment"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      issue_key: $json.issue_key,\n      jira_comment_body: {\n        body: {\n          type: \"doc\",\n          version: 1,\n          content: [\n            {\n              type: \"paragraph\",\n              content: [\n                {\n                  type: \"text\",\n                  text: $json.report\n                }\n              ]\n            }\n          ]\n        }\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -112
+      ],
+      "id": "92c8df30-1ba6-4af7-9570-0c516a3fdd51",
+      "name": "Prepare Jira Comment Body"
+    }
+  ],
+  "connections": {
+    "Test Report": {
+      "main": [
+        [
+          {
+            "node": "Prepare Jira Comment Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quality Gate": {
+      "main": [
+        [
+          {
+            "node": "Test Data Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Improvement Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Test Case Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Test Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Test Cases": {
+      "main": [
+        [
+          {
+            "node": "Critic Agent - AC Coverage2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Critic Review": {
+      "main": [
+        [
+          {
+            "node": "Quality Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Improvement Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Improvement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Extraction AC's": {
+      "main": [
+        [
+          {
+            "node": "Jira Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critic Agent - AC Coverage1": {
+      "main": [
+        []
+      ]
+    },
+    "Parse AI Improvement": {
+      "main": [
+        [
+          {
+            "node": "Critic Agent - AC Coverage2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critic Agent - AC Coverage2": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Critic Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Data Agent1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Test Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Test Data": {
+      "main": [
+        [
+          {
+            "node": "Test Execution Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Fields": {
+      "main": [
+        [
+          {
+            "node": "Total AC's",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Total AC's": {
+      "main": [
+        [
+          {
+            "node": "AI Test Case Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Execution Agent": {
+      "main": [
+        [
+          {
+            "node": "Defect Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Defect Agent": {
+      "main": [
+        [
+          {
+            "node": "Test Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Jira Comment Body": {
+      "main": [
+        [
+          {
+            "node": "Add Jira Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}
